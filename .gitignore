@@ -1,0 +1,132 @@
+# ===================================================================
+# OS-Specific Files
+# ===================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.Trash-*
+
+
+# ===================================================================
+# .NET and Build Artifacts
+# ===================================================================
+
+# Output directories
+bin/
+obj/
+out/
+artifacts/
+
+# Build lock files
+project.lock.json
+project.fragment.lock.json
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+# Uncomment if you have a "packages" folder and wish to ignore it
+# packages/
+
+
+# ===================================================================
+# Development Environment and IDE-Specific Files
+# ===================================================================
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+
+
+# ===================================================================
+# User-Specific and Local Configuration Files
+# ===================================================================
+
+# User Preferences
+*.rsuser
+*.userprefs
+*.csproj.user
+
+# Local Environment Settings
+appsettings.Development.json
+appsettings.*.json
+appsettings.Local.json
+
+
+# ===================================================================
+# Tooling, Logs, and Temporary Files
+# ===================================================================
+
+# Logs and Diagnostics
+*.log
+*.tlog
+*.wrn
+*.err
+
+# Debug and Temporary Files
+*.tmp
+*.temp
+*.cache
+*.sqlite3
+*.sql
+*.mdf
+*.ndf
+debug/
+logs/
+coverage/
+
+# Generated Files by Tooling
+GeneratedFiles/
+Generated_*/  
+testResults/
+
+
+# ===================================================================
+# Package Management Files
+# ===================================================================
+
+# Node.js and Bower
+node_modules/
+bower_components/
+
+
+# ===================================================================
+# Docker Files (optional, uncomment if needed)
+# ===================================================================
+
+# Docker configuration
+# **/Dockerfile
+# **/docker-compose*
+
+
+# ===================================================================
+# Other
+# ===================================================================
+
+# Uncomment if your team uses Resharper
+# *.ReSharper
+# _ReSharper*
+
+# .NET interactive files
+**/*.ipynb
