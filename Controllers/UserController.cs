@@ -1,18 +1,34 @@
-
 using Microsoft.AspNetCore.Mvc;
+
+namespace DotnetAPI.Controllers;
 
 [ApiController]
 [Route("users")]
 public class UserController : ControllerBase
 {
-    public UserController()
+    DataContextDapper _dapper;
+    public UserController(IConfiguration config)
     {
+        _dapper = new DataContextDapper(config);
     }
 
     [HttpGet]
-    public string[] Get()
+    public DateTime TestConnection()
     {
-        string[] responseArray = { "test1", "test2" };
-        return responseArray;
+        return _dapper.LoadDataSingle<DateTime>("SELECT GETDATE()");
+    }
+
+    [HttpGet("GetUsers/{testValue}")]
+    // public IEnumerable<User> GetUsers()
+    public string[] GetUsers(string testValue)
+    {
+        return new string[] { "user1", "user2", testValue };
+        // return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        // {
+        //     Date = DateTime.Now.AddDays(index),
+        //     TemperatureC = Random.Shared.Next(-20, 55),
+        //     Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+        // })
+        // .ToArray();
     }
 }
