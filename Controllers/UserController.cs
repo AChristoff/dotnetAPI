@@ -76,7 +76,7 @@ public class UserController : ControllerBase
     public IActionResult EditUser(User user)
     {
         string sql = @"
-        UPDATE TutorialAppSchema.Users
+            UPDATE TutorialAppSchema.Users
             SET [FirstName] = '" + user.FirstName +
                 "', [LastName] = '" + user.LastName +
                 "', [Email] = '" + user.Email +
@@ -106,7 +106,8 @@ public class UserController : ControllerBase
     [HttpPost]
     public IActionResult AddUser(User user)
     {
-        string sql = @"INSERT INTO TutorialAppSchema.Users(
+        string sql = @"
+            INSERT INTO TutorialAppSchema.Users(
                 [FirstName],
                 [LastName],
                 [Email],
@@ -144,7 +145,7 @@ public class UserController : ControllerBase
     {
         string sql = @"
             DELETE FROM TutorialAppSchema.Users 
-                WHERE UserId = " + id.ToString();
+            WHERE UserId = " + id.ToString();
 
         Console.WriteLine(sql);
 
