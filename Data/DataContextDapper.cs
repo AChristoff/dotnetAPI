@@ -30,6 +30,13 @@ namespace DotnetAPI
             return dbConnection.Execute(sql) > 0;
         }
 
+        public bool ExecuteSqlWithParameters(string sql, Dictionary<string, object> parameters)
+        {
+            using IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            return dbConnection.Execute(sql, parameters) > 0;
+        }
+
+
         public int ExecuteSqlWithRowCount(string sql)
         {
             IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
