@@ -41,7 +41,7 @@ public class UserController : ControllerBase
     *
     * GET USER by ID
     *
-    * GET: /api/users/{id}
+    * GET: /api/user/{id}
     * @param int id
     * @return User
     *
@@ -66,7 +66,7 @@ public class UserController : ControllerBase
     *
     * EDIT USER
     *
-    * POST: /api/users
+    * POST: /api/user
     * @param User user
     * @return IActionResult
     *
@@ -98,7 +98,7 @@ public class UserController : ControllerBase
     *
     * CREATE USER
     *
-    * POST: /api/users
+    * POST: /api/user
     * @param User user
     * @return IActionResult
     *
@@ -135,7 +135,7 @@ public class UserController : ControllerBase
     *
     * DELETE USER
     *
-    * DELETE: /api/users/{userId}
+    * DELETE: /api/user/{userId}
     * @param int userId
     * @return IActionResult
     *
