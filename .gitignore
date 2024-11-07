@@ -130,3 +130,5 @@ bower_components/
 
 # .NET interactive files
 **/*.ipynb
+
+.fake

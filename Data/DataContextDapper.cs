@@ -2,7 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.SqlClient;
 
-namespace DotnetAPI
+namespace DotnetAPI.Data
 {
     class DataContextDapper
     {
@@ -24,10 +24,10 @@ namespace DotnetAPI
             return dbConnection.QuerySingle<T>(sql);
         }
 
-        public bool ExecuteSql(string sql)
+        public bool ExecuteSql(string sql, DynamicParameters? parameters = null)
         {
-            IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            return dbConnection.Execute(sql) > 0;
+            using IDbConnection dbConnection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            return dbConnection.Execute(sql, parameters) > 0;
         }
 
         public bool ExecuteSqlWithParameters(string sql, Dictionary<string, object> parameters)
