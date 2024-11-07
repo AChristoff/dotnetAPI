@@ -1,15 +1,17 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using DotnetAPI.Conventions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers(options =>
 {
-    options.Conventions.Add(new GlobalRoutePrefixConvention("api"));
+    options.Conventions.Add(new GlobalRoutePrefixConvention("api")); // Add global route prefix "/api"
 });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Dev_CORS", corsBuilder =>
@@ -20,7 +22,6 @@ builder.Services.AddCors(options =>
                 .AllowCredentials();
         });
 
-
     options.AddPolicy("Prod_CORS", corsBuilder =>
         {
             corsBuilder.WithOrigins("https://costschef.com")
@@ -29,6 +30,23 @@ builder.Services.AddCors(options =>
                 .AllowCredentials();
         });
 });
+
+// JWT Authentication
+string? tokenKeyString = builder.Configuration.GetSection("AppSettings:TokenKey").Value;
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                    tokenKeyString ?? ""
+                )),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
 
 var app = builder.Build();
 
@@ -45,6 +63,7 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
