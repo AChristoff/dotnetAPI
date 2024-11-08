@@ -1,0 +1,36 @@
+# ----------------------------------------------------------------------------------------
+#  Environment Configuration File
+# ----------------------------------------------------------------------------------------
+
+
+
+#  Copy this file to .env and set the values!
+#  ----------------------------------------------------------------------------------------
+
+
+
+# --- JWT Secret Key --- 
+
+# Description: This is the symmetric key used for signing JSON Web Tokens (JWT). It should be a secure, random key.
+# Instructions: Generate a secure, 256-bit (32-character) base64-encoded string.
+# Required Length: 256-bit (32 bytes)
+TokenKey=""
+
+
+# ---  Password Encryption Key --- 
+
+# Description: This key is used as an additional security layer in combination with a salt to securely hash and protect user passwords.
+# Instructions: Generate a secure, 256-bit (32-character) base64-encoded string.
+# Required Length: 256-bit (32 bytes)
+PasswordKey=""
+
+
+# --- CORS Origins ---
+
+# Description: Define the allowed origins for cross-origin requests during development and production.
+# CorsDevURL is used in the development environment, typically on localhost.
+# CorsProdURL is used in the production environment to specify your production domain.
+CorsDevURL=""      # Example http://localhost:3000
+CorsProdURL=""     # Example https://example.com
+
+

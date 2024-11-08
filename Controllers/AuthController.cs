@@ -1,16 +1,11 @@
 using System.Data;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using DotnetAPI.Data;
 using DotnetAPI.Models.DTOs;
 using DotnetAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Microsoft.IdentityModel.Tokens;
 
 namespace DotnetAPI.Controllers
 {
@@ -25,7 +20,7 @@ namespace DotnetAPI.Controllers
         public AuthController(IConfiguration config)
         {
             _dapper = new DataContextDapper(config);
-            _authHelper = new AuthHelper(config);
+            _authHelper = new AuthHelper();
         }
 
         [AllowAnonymous]

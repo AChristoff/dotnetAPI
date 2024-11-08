@@ -3,20 +3,24 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.IdentityModel.Tokens;
+using DotNetEnv;
 
 namespace DotnetAPI.Helpers
 {
     public class AuthHelper
     {
-        private readonly IConfiguration _config;
-        public AuthHelper(IConfiguration config)
+        public AuthHelper()
         {
-            _config = config;
+            Env.Load();
         }
+
         public byte[] GetPasswordHash(string password, byte[] passwordSalt)
         {
-            string passwordSaltPlusString = _config.GetSection("AppSettings:PasswordKey").Value +
-                Convert.ToBase64String(passwordSalt);
+            // Get PasswordKey from environment variables
+            string passwordKey = Environment.GetEnvironmentVariable("PasswordKey") ??
+                                 throw new InvalidOperationException("PasswordKey is not configured."); // Get PasswordKey from environment variables
+
+            string passwordSaltPlusString = passwordKey + Convert.ToBase64String(passwordSalt); // Combine PasswordKey and passwordSalt
 
             return KeyDerivation.Pbkdf2(
                 password: password,
@@ -24,42 +28,33 @@ namespace DotnetAPI.Helpers
                 prf: KeyDerivationPrf.HMACSHA256,
                 iterationCount: 1000000,
                 numBytesRequested: 256 / 8
-            );
+            ); // Return password hash
         }
-
 
         public string CreateToken(int userId)
         {
-            Claim[] claims = new Claim[] {
+            Claim[] claims = [
                 new Claim("userId", userId.ToString())
+            ];
+
+            // Get TokenKey from environment variables
+            string tokenKeyString = Environment.GetEnvironmentVariable("TokenKey")
+                                    ?? throw new InvalidOperationException("TokenKey is not configured."); // Get TokenKey from environment variables
+
+            SymmetricSecurityKey tokenKey = new(Encoding.UTF8.GetBytes(tokenKeyString)); // Convert tokenKey to byte array
+            SigningCredentials credentials = new(tokenKey, SecurityAlgorithms.HmacSha512Signature); // Use HmacSha512 for token signature
+
+            SecurityTokenDescriptor descriptor = new() // Create token descriptor
+            {
+                Subject = new ClaimsIdentity(claims), // Add userId claim
+                SigningCredentials = credentials, // Use tokenKey for signing
+                Expires = DateTime.Now.AddDays(30) // Token expires in 30 days
             };
-            
-            string? tokenKeyString = _config.GetSection("AppSettings:TokenKey").Value;
 
-            SymmetricSecurityKey tokenKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(
-                        tokenKeyString != null ? tokenKeyString : ""
-                    )
-                );
+            JwtSecurityTokenHandler tokenHandler = new(); // Create token handler
+            SecurityToken token = tokenHandler.CreateToken(descriptor); // Create token
 
-            SigningCredentials credentials = new SigningCredentials(
-                    tokenKey, 
-                    SecurityAlgorithms.HmacSha512Signature
-                );
-
-            SecurityTokenDescriptor descriptor = new SecurityTokenDescriptor()
-                {
-                    Subject = new ClaimsIdentity(claims),
-                    SigningCredentials = credentials,
-                    Expires = DateTime.Now.AddDays(1)
-                };
-
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-
-            SecurityToken token = tokenHandler.CreateToken(descriptor);
-
-            return tokenHandler.WriteToken(token);
-
+            return tokenHandler.WriteToken(token); // Return token as string
         }
     }
 }
