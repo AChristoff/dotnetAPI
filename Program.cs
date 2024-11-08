@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using DotNetEnv;
 using DotnetAPI.Conventions;
+using DotnetAPI.Models;  // Make sure to include the namespace for EmailSettings
+using DotnetAPI.Services; // Include the namespace for EmailService
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,30 +12,58 @@ var builder = WebApplication.CreateBuilder(args);
 Env.Load();
 
 // Use environment variables
-string? devURL = Environment.GetEnvironmentVariable("CorsDevURL");
-string? prodURL = Environment.GetEnvironmentVariable("CorsProdURL");
 string? tokenKey = Environment.GetEnvironmentVariable("TokenKey");
 string? PasswordKey = Environment.GetEnvironmentVariable("PasswordKey");
+
+// CORS
+string? devURL = Environment.GetEnvironmentVariable("CorsDevURL");
+string? prodURL = Environment.GetEnvironmentVariable("CorsProdURL");
+
+// Email
+var environment = builder.Environment.IsProduction() ? "_PROD" : "";
+string? smtpHost = Environment.GetEnvironmentVariable($"MAIL_HOST{environment}");
+int smtpPort = int.Parse(Environment.GetEnvironmentVariable($"MAIL_PORT{environment}") ?? "465");
+string? smtpSender = Environment.GetEnvironmentVariable($"MAIL_SENDER{environment}");
+string? smtpAddress = Environment.GetEnvironmentVariable($"MAIL_ADDRESS{environment}");
+string? smtpPassword = Environment.GetEnvironmentVariable($"MAIL_PASSWORD{environment}");
 
 // Add error if environment variables are not set
 if (string.IsNullOrEmpty(devURL) ||
     string.IsNullOrEmpty(prodURL) ||
     string.IsNullOrEmpty(tokenKey) ||
-    string.IsNullOrEmpty(PasswordKey)
-   )
+    string.IsNullOrEmpty(PasswordKey) ||
+    string.IsNullOrEmpty(smtpHost) ||
+    string.IsNullOrEmpty(smtpSender) ||
+    string.IsNullOrEmpty(smtpAddress) ||
+    string.IsNullOrEmpty(smtpPassword))
 {
     Console.WriteLine("Environment variables are not set. Please check the .env file.");
     return;
 }
 
+// Configure EmailSettings
+builder.Services.Configure<EmailSettings>(options =>
+{
+    options.SmtpServer = smtpHost;
+    options.Port = smtpPort;
+    options.SenderName = smtpSender;
+    options.SenderEmail = smtpAddress;
+    options.Username = smtpAddress;  // Username is typically the email address for SMTP login
+    options.Password = smtpPassword;
+});
+// Register EmailService
+builder.Services.AddTransient<EmailService>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Add services to the container.
 builder.Services.AddControllers(options =>
 {
     // Add global route prefix "/api"
     options.Conventions.Add(new GlobalRoutePrefixConvention("api"));
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Dev_CORS", corsBuilder =>
@@ -66,9 +96,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Build the API
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("Dev_CORS");
