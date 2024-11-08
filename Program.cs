@@ -5,6 +5,7 @@ using DotNetEnv;
 using DotnetAPI.Conventions;
 using DotnetAPI.Models;  // Make sure to include the namespace for EmailSettings
 using DotnetAPI.Services; // Include the namespace for EmailService
+using Microsoft.OpenApi.Models; // Add this line to include ParameterLocation
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,7 +56,39 @@ builder.Services.Configure<EmailSettings>(options =>
 builder.Services.AddTransient<EmailService>();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
+
+    // Define JWT authentication in Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http, // Set to Http to treat it as HTTP authentication
+        Scheme = "Bearer" // This will automatically add "Bearer " prefix in the authorization header
+    });
+
+    // Add JWT security requirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "Bearer", // Must match the Scheme in the definition above
+                Name = "Bearer",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
+        }
+    });
+});
 
 // Add services to the container.
 builder.Services.AddControllers(options =>

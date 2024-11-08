@@ -4,10 +4,7 @@ using DotnetAPI.Models.DTOs;
 using DotnetAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Mail;
-using System.Net;
 using DotnetAPI.Services;
-using System;
 
 namespace DotnetAPI.Controllers
 {
@@ -26,6 +23,9 @@ namespace DotnetAPI.Controllers
             _authHelper = new AuthHelper();
             _emailService = emailService;
         }
+
+        /** -------------------------------- PUBLIC ROUTES -------------------------------- **/
+
         /**
         *
         * Register USER
@@ -176,7 +176,10 @@ namespace DotnetAPI.Controllers
         [HttpPost("refresh-otp")]
         public IActionResult RequestNewOtp(UserEmailDto userEmailDto)
         {
-            // Step 1: Check if the user is already verified (Active = 1)
+            // Step 1: Check if the user is authenticated
+            var userIdClaim = User.FindFirst("userId")?.Value;
+
+            // Step 2: Check if the user is already verified (Active = 1) only if the user is not authenticated
             string sqlCheckUserActive = @"
                 SELECT Active FROM TutorialAppSchema.Users
                 WHERE Email = @Email";
@@ -186,7 +189,7 @@ namespace DotnetAPI.Controllers
 
             var userStatus = _dapper.LoadData<int>(sqlCheckUserActive, checkUserParams).FirstOrDefault();
 
-            if (userStatus == 1) // User is active and verified
+            if (userStatus == 1 && userIdClaim == null) // User is active and verified (OTP) only for non-authenticated users
             {
                 return BadRequest("Account is already verified.");
             }
@@ -285,6 +288,16 @@ namespace DotnetAPI.Controllers
             });
         }
 
+        /** -------------------------------- PROTECTED ROUTES -------------------------------- **/
+
+        /**
+        *
+        * Refresh Token
+        *
+        * GET: /auth/refresh-token
+        * @info Refresh the JWT token if user is AUTHENTICATED else if UNAUTHENTICATED and NOT ACTIVE (0)
+        *
+        */
         [HttpGet("refresh-token")]
         public string RefreshToken()
         {
@@ -296,6 +309,113 @@ namespace DotnetAPI.Controllers
 
             return _authHelper.CreateToken(userId);
         }
+
+        /**
+        *
+        * Password Reset
+        *
+        * POST: /auth/password-reset
+        * @info Reset the password requires: OTP and OldPassword
+        *
+        */
+        [HttpPost("password-reset")]
+        public IActionResult PasswordReset(PasswordResetDto resetDto)
+        {
+            // Step 1: Retrieve user ID from JWT token
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (userIdClaim == null)
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+            int userId;
+            if (!int.TryParse(userIdClaim, out userId))
+            {
+                return Unauthorized("Invalid user ID in token.");
+            }
+
+            // Step 2: Get the user's email using the UserId
+            string sqlForUserEmail = @"
+                SELECT Email FROM TutorialAppSchema.Users 
+                WHERE UserId = @UserId";
+
+            var emailParams = new Dapper.DynamicParameters();
+            emailParams.Add("UserId", userId);
+            string userEmail = _dapper.LoadData<string>(sqlForUserEmail, emailParams).FirstOrDefault() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return NotFound("User email not found.");
+            }
+
+            // Step 3: Get the user's current password hash, salt, and OTP data using Email
+            string sqlForAuthData = @"
+                SELECT PasswordHash, PasswordSalt, OTP, OTPExpirationTime 
+                FROM TutorialAppSchema.Auth 
+                WHERE Email = @Email";
+
+            var authDataParams = new Dapper.DynamicParameters();
+            authDataParams.Add("Email", userEmail);
+            var authData = _dapper.LoadData<dynamic>(sqlForAuthData, authDataParams).FirstOrDefault();
+
+            if (authData == null)
+                return NotFound("User data not found.");
+
+            // Step 4: Verify old password
+            byte[] oldPasswordHash = _authHelper.GetPasswordHash(resetDto.OldPassword, authData.PasswordSalt);
+            for (int index = 0; index < oldPasswordHash.Length; index++)
+            {
+                if (oldPasswordHash[index] != authData.PasswordHash[index])
+                {
+                    return StatusCode(401, "Incorrect old password.");
+                }
+            }
+
+            // Step 5: Validate OTP and expiration time
+            if (authData.OTP != resetDto.OTP)
+            {
+                return BadRequest("Invalid OTP.");
+            }
+
+            if (DateTime.UtcNow > authData.OTPExpirationTime)
+            {
+                return BadRequest("OTP has expired.");
+            }
+
+            // Step 6: Validate new passwords
+            if (resetDto.NewPassword != resetDto.ConfirmNewPassword)
+            {
+                return BadRequest("New password and confirmation do not match.");
+            }
+
+            // Step 7: Generate new password hash and salt for the new password
+            byte[] newSalt = new byte[128 / 8];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetNonZeroBytes(newSalt);
+            }
+            byte[] newPasswordHash = _authHelper.GetPasswordHash(resetDto.NewPassword, newSalt);
+
+            // Step 8: Update the password hash, salt, and clear the OTP in the Auth table
+            string sqlUpdatePassword = @"
+                UPDATE TutorialAppSchema.Auth
+                SET PasswordHash = @PasswordHash, PasswordSalt = @PasswordSalt, OTP = NULL, OTPExpirationTime = NULL
+                WHERE Email = @Email";
+
+            var updatePasswordParams = new Dapper.DynamicParameters();
+            updatePasswordParams.Add("Email", userEmail);
+            updatePasswordParams.Add("PasswordHash", newPasswordHash);
+            updatePasswordParams.Add("PasswordSalt", newSalt);
+
+            bool isUpdated = _dapper.ExecuteSql(sqlUpdatePassword, updatePasswordParams);
+            if (!isUpdated)
+            {
+                throw new Exception("Failed to reset password.");
+            }
+
+            return Ok("Password has been successfully reset.");
+        }
+
+
 
     }
 }
