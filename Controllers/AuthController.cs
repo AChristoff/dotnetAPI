@@ -72,9 +72,8 @@ namespace DotnetAPI.Controllers
             if (!_dapper.ExecuteSql(sqlAddUser, userParams))
                 throw new Exception("Failed to add user.");
 
-            // Step 1: Generate OTP
-            var otp = new Random().Next(100000, 999999); // 6-digit OTP
-            var otpExpirationTime = DateTime.UtcNow.AddMinutes(30); // OTP valid for 30 minutes
+            // Step 1: Generate OTP and Expiration Time
+            var (otp, otpExpirationTime) = _authHelper.GenerateOtp();
 
             // Step 2: Save OTP, password hash, and password salt in the Auth table
             string sqlAddAuth = @"
@@ -193,8 +192,7 @@ namespace DotnetAPI.Controllers
             }
 
             // Step 2: Generate a new OTP and update it in the Auth table
-            var newOtp = new Random().Next(100000, 999999); // Generate a 6-digit OTP
-            var newOtpExpirationTime = DateTime.UtcNow.AddMinutes(30); // Set expiration to 30 minutes from now
+            var (otp, otpExpirationTime) = _authHelper.GenerateOtp();
 
             string sqlUpdateOtp = @"
                 UPDATE TutorialAppSchema.Auth
@@ -203,8 +201,8 @@ namespace DotnetAPI.Controllers
 
             var updateOtpParams = new Dapper.DynamicParameters();
             updateOtpParams.Add("Email", userEmailDto.Email);
-            updateOtpParams.Add("OTP", newOtp);
-            updateOtpParams.Add("OTPExpirationTime", newOtpExpirationTime);
+            updateOtpParams.Add("OTP", otp);
+            updateOtpParams.Add("OTPExpirationTime", otpExpirationTime);
 
             if (!_dapper.ExecuteSql(sqlUpdateOtp, updateOtpParams))
                 throw new Exception("Failed to update OTP.");
@@ -212,7 +210,7 @@ namespace DotnetAPI.Controllers
             // Step 3: Send the new OTP to the user's email using EmailService
             string subject = "One-Time Password (OTP) for Account Verification";
             // add new line after the OTP code
-            string body = $"Your OTP Code is: {newOtp}. \nIt is valid for 30 minutes.";
+            string body = $"Your OTP Code is: {otp}. \nIt is valid for 30 minutes.";
 
             try
             {

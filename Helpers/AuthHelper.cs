@@ -56,5 +56,12 @@ namespace DotnetAPI.Helpers
 
             return tokenHandler.WriteToken(token); // Return token as string
         }
+
+        public (int otp, DateTime expirationTime) GenerateOtp()
+        {
+            int otp = new Random().Next(100000, 999999); // Generate a 6-digit OTP
+            DateTime expirationTime = DateTime.UtcNow.AddMinutes(30); // OTP valid for 30 minutes
+            return (otp, expirationTime);
+        }
     }
 }
