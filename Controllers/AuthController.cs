@@ -111,15 +111,15 @@ namespace DotnetAPI.Controllers
         *
         * Verify Email - OTP
         *
-        * POST: /auth/verify-email
+        * POST: /auth/register-confirm
         * @return IActionResult
         *
         */
         [AllowAnonymous]
-        [HttpPost("verify-email")]
+        [HttpPost("register-confirm")]
         public IActionResult VerifyOtp(UserEmailVerificationDto otpVerification)
         {
-            // Query to check the OTP and expiration time
+            // Step 1: Retrieve the OTP and expiration time from the Auth table for the given email
             string sqlCheckOTP = @"
                 SELECT OTP, OTPExpirationTime FROM TutorialAppSchema.Auth 
                 WHERE Email = @Email";
@@ -129,6 +129,7 @@ namespace DotnetAPI.Controllers
 
             var otpData = _dapper.LoadData<dynamic>(sqlCheckOTP, checkOtpParams).FirstOrDefault();
 
+            // Step 2: Validate OTP existence, correctness, and expiration
             if (otpData == null)
                 return NotFound("OTP not found for this email.");
 
@@ -138,7 +139,7 @@ namespace DotnetAPI.Controllers
             if (DateTime.UtcNow > otpData.OTPExpirationTime)
                 return BadRequest("OTP has expired.");
 
-            // OTP is valid, so activate the user
+            // Step 3: OTP is valid, so activate the user by updating the 'Active' status in the Users table
             string sqlActivateUser = @"
                 UPDATE TutorialAppSchema.Users
                 SET Active = 1
@@ -150,7 +151,7 @@ namespace DotnetAPI.Controllers
             if (!_dapper.ExecuteSql(sqlActivateUser, activateUserParams))
                 throw new Exception("Failed to activate user.");
 
-            // Clear OTP and expiration time after successful verification
+            // Step 4: Clear OTP and expiration time after successful verification in the Auth table
             string sqlClearOTP = @"
                 UPDATE TutorialAppSchema.Auth
                 SET OTP = NULL, OTPExpirationTime = NULL
@@ -161,7 +162,17 @@ namespace DotnetAPI.Controllers
 
             _dapper.ExecuteSql(sqlClearOTP, clearOtpParams);
 
-            return Ok("User successfully verified and activated.");
+            // Step 5: Retrieve the user ID from the Users table to generate a JWT token
+            string userIdSql = @"
+                SELECT UserId FROM TutorialAppSchema.Users 
+                WHERE Email = @Email";
+
+            int userId = _dapper.LoadDataSingle<int>(userIdSql, activateUserParams);
+
+            // Step 6: Generate and return a JWT token for the user to log them in after successful email verification
+            return Ok(new Dictionary<string, string> {
+                {"token", _authHelper.CreateToken(userId)}
+            });
         }
 
         /**
